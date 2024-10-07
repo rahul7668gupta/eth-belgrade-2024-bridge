@@ -3,7 +3,6 @@ package operator
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"os"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -15,6 +14,7 @@ import (
 	"github.com/Layr-Labs/incredible-squaring-avs/core"
 	"github.com/Layr-Labs/incredible-squaring-avs/core/chainio"
 	"github.com/Layr-Labs/incredible-squaring-avs/metrics"
+	bitcoin "github.com/Layr-Labs/incredible-squaring-avs/spremo"
 	"github.com/Layr-Labs/incredible-squaring-avs/types"
 
 	"github.com/Layr-Labs/eigensdk-go/chainio/clients"
@@ -36,6 +36,7 @@ import (
 
 const AVS_NAME = "incredible-squaring"
 const SEM_VER = "0.0.1"
+const MULTISIG_ADDR = "2N4bRYNoXtmhj1A1r4d9gz6jB3CdBQ1KjCv"
 
 type Operator struct {
 	config    types.NodeConfig
@@ -301,6 +302,7 @@ func (o *Operator) Start(ctx context.Context) error {
 			if err != nil {
 				continue
 			}
+			fmt.Println("PUSI KURAC")
 			go o.aggregatorRpcClient.SendSignedTaskResponseToAggregator(signedTaskResponse)
 		}
 	}
@@ -311,16 +313,19 @@ func (o *Operator) Start(ctx context.Context) error {
 func (o *Operator) ProcessNewTaskCreatedLog(newTaskCreatedLog *cstaskmanager.ContractIncredibleSquaringTaskManagerNewTaskCreated) *cstaskmanager.IIncredibleSquaringTaskManagerTaskResponse {
 	o.logger.Debug("Received new task", "task", newTaskCreatedLog)
 	o.logger.Info("Received new task",
-		"numberToBeSquared", newTaskCreatedLog.Task.NumberToBeSquared,
+		"destAddress", newTaskCreatedLog.Task.DestAddress,
+		"amount", newTaskCreatedLog.Task.Amount,
 		"taskIndex", newTaskCreatedLog.TaskIndex,
 		"taskCreatedBlock", newTaskCreatedLog.Task.TaskCreatedBlock,
 		"quorumNumbers", newTaskCreatedLog.Task.QuorumNumbers,
 		"QuorumThresholdPercentage", newTaskCreatedLog.Task.QuorumThresholdPercentage,
 	)
-	numberSquared := big.NewInt(0).Exp(newTaskCreatedLog.Task.NumberToBeSquared, big.NewInt(2), nil)
+	// Sign transaction on multisig for amount to destAddress and get txHash
+	txSignature := bitcoin.SignTx(newTaskCreatedLog.Task.DestAddress, newTaskCreatedLog.Task.Amount.String())
+	fmt.Println(txSignature)
 	taskResponse := &cstaskmanager.IIncredibleSquaringTaskManagerTaskResponse{
 		ReferenceTaskIndex: newTaskCreatedLog.TaskIndex,
-		NumberSquared:      numberSquared,
+		TxSignature:        txSignature,
 	}
 	return taskResponse
 }

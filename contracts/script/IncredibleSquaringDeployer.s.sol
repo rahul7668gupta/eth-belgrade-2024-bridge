@@ -21,6 +21,7 @@ import "@eigenlayer-middleware/src/OperatorStateRetriever.sol";
 import {IncredibleSquaringServiceManager, IServiceManager} from "../src/IncredibleSquaringServiceManager.sol";
 import {IncredibleSquaringTaskManager} from "../src/IncredibleSquaringTaskManager.sol";
 import {IIncredibleSquaringTaskManager} from "../src/IIncredibleSquaringTaskManager.sol";
+import {WBTC} from "../src/WBTC.sol";
 import "../src/ERC20Mock.sol";
 
 import {Utils} from "./utils/Utils.sol";
@@ -42,6 +43,8 @@ contract IncredibleSquaringDeployer is Script, Utils {
         0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
     address public constant TASK_GENERATOR_ADDR =
         0xa0Ee7A142d267C1f36714E4a8F75612F20a79720;
+    address public constant WBTC_ADDR =
+        0x5f3f1dBD7B74C6B46e8c44f98792A1dAf8d69154;
 
     // ERC20 and Strategy: we need to deploy this erc20, create a strategy for it, and whitelist this strategy in the strategymanager
 
@@ -72,6 +75,8 @@ contract IncredibleSquaringDeployer is Script, Utils {
     IncredibleSquaringTaskManager public incredibleSquaringTaskManager;
     IIncredibleSquaringTaskManager
         public incredibleSquaringTaskManagerImplementation;
+
+    WBTC public wbtc;
 
     function run() external {
         // Eigenlayer contracts
@@ -388,9 +393,13 @@ contract IncredibleSquaringDeployer is Script, Utils {
                 incredibleSquaringPauserReg,
                 incredibleSquaringCommunityMultisig,
                 AGGREGATOR_ADDR,
-                TASK_GENERATOR_ADDR
+                TASK_GENERATOR_ADDR,
+                WBTC_ADDR
             )
         );
+
+        // Deploy WBTC Contract 
+        wbtc = new WBTC(address(incredibleSquaringTaskManager));
 
         // WRITE JSON DATA
         string memory parent_object = "parent object";
@@ -435,6 +444,11 @@ contract IncredibleSquaringDeployer is Script, Utils {
             deployed_addresses,
             "registryCoordinatorImplementation",
             address(registryCoordinatorImplementation)
+        );
+        vm.serializeAddress(
+            deployed_addresses,
+            "WBTC",
+            address(wbtc)
         );
         string memory deployed_addresses_output = vm.serializeAddress(
             deployed_addresses,
